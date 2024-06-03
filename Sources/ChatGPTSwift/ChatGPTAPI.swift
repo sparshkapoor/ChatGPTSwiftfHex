@@ -70,6 +70,31 @@ public class ChatGPTAPI: @unchecked Sendable {
         }
     }
 
+
+    public func promptChatGPT(
+            prompt: String,
+            model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_4,
+            assistantPrompt: String = "You are a helpful assistant",
+            prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) async throws -> String {
+            let response = try await client.createChatCompletion(body: .json(.init(
+                messages: [.ChatCompletionRequestAssistantMessage(.init(content: assistantPrompt, role: .assistant))]
+                + prevMessages
+                + [.ChatCompletionRequestUserMessage(.init(content: .case1(prompt), role: .user))],
+                model: .init(value1: nil, value2: model))))
+            
+            switch response {
+            case .ok(let body):
+                let json = try body.body.json
+                guard let content = json.choices.first?.message.content else {
+                    throw "No Response"
+                }
+                return content
+            case .undocumented(let statusCode, let payload):
+                throw "OpenAIClientError - statuscode: \(statusCode), \(payload)"
+            }
+            
+        }
+    
     private func jsonBody(text: String, model: String, systemText: String, temperature: Double, stream: Bool = true) throws -> Data {
         let request = Request(model: model,
                         temperature: temperature,
